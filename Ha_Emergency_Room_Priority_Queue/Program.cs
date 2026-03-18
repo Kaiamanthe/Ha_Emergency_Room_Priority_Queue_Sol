@@ -1,8 +1,4 @@
-﻿// Khai Ha
-// IT113
-// NOTES: My first thought to sort was to put the by making list for each priority, and then filter and put them into each list. That's how I was going to sort but we did not went that way.
-
-using System;
+﻿using System;
 using System.IO;
 
 namespace Ha_Emergency_Room_Priority_Queue
@@ -13,78 +9,110 @@ namespace Ha_Emergency_Room_Priority_Queue
 
         static void Main(string[] args)
         {
+            string preRecords = FindCsvPath("Patients-1.csv");
+            eRQueue.LoadPreRecords(preRecords);
 
-            string PreRecords = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Patients-1.csv"); // Find the file that's in the bin
-
-            eRQueue.LoadPreRecords(PreRecords); // Shoves the PreRecords into the LoadPreRecords
-
-            string choice = string.Empty; //Choices to navigate the program
+            string choice = string.Empty;
 
             do
             {
-                Console.WriteLine("Main Menu" + '\n' + "(A)dd Patient" + '\n' + "(P)rocess Current Patient" + '\n' + "(L)ist All in Queue" + '\n' + "(Q)uit");
-                choice = Console.ReadLine().ToUpper();
+                Console.WriteLine("Main Menu");
+                Console.WriteLine("(A)dd Patient");
+                Console.WriteLine("(P)rocess Current Patient");
+                Console.WriteLine("(L)ist All in Queue");
+                Console.WriteLine("(Q)uit");
+
+                choice = (Console.ReadLine() ?? "").Trim().ToUpper();
+
                 if (choice == "A")
                 {
                     Console.Clear();
                     AddPatient();
                 }
-                if(choice == "P")
+                else if (choice == "P")
                 {
                     Console.Clear();
                     ProcessPatient();
                 }
-                if(choice == "L")
+                else if (choice == "L")
                 {
                     Console.Clear();
                     eRQueue.ListPatients();
                 }
 
-            }while(choice != "Q");
+            } while (choice != "Q");
 
+            Console.WriteLine();
+            Console.WriteLine("End Reached");
+        }
 
-            Console.WriteLine('\n' + "End Reached");
+        static string FindCsvPath(string fileName)
+        {
+            string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            string[] possiblePaths =
+            {
+                Path.Combine(baseDir, fileName),
+                Path.Combine(Directory.GetCurrentDirectory(), fileName),
+                Path.Combine(Directory.GetCurrentDirectory(), "Ha_Emergency_Room_Priority_Queue", fileName),
+                Path.Combine(baseDir, @"..\..\..\", fileName),
+                Path.Combine(baseDir, @"..\..\..\..\",
+                    "Ha_Emergency_Room_Priority_Queue", fileName)
+            };
+
+            foreach (string path in possiblePaths)
+            {
+                string fullPath = Path.GetFullPath(path);
+                if (File.Exists(fullPath))
+                {
+                    return fullPath;
+                }
+            }
+
+            return Path.Combine(baseDir, fileName);
         }
 
         static void AddPatient()
         {
-            Console.WriteLine("Enter First Name: ");
-            string Name = Console.ReadLine();
-            Console.Clear();
-            Console.WriteLine("Enter Last Name: ");
-            string SirName = Console.ReadLine();
-            Console.WriteLine("Enter Date of Birth: ");
-            Console.Clear();
-            DateTime DOB;
+            Console.Write("Enter First Name: ");
+            string name = Console.ReadLine() ?? "";
+
+            Console.Write("Enter Last Name: ");
+            string lastName = Console.ReadLine() ?? "";
+
+            DateTime dob;
             while (true)
             {
-                Console.Write("Enter Date of Birth as (MM/DD/YYYY): ");
-                if (DateTime.TryParse(Console.ReadLine(), out DOB))
+                Console.Write("Enter Date of Birth (MM/DD/YYYY): ");
+                if (DateTime.TryParse(Console.ReadLine(), out dob))
                 {
                     break;
                 }
-                Console.WriteLine("Invalid date."); // checks to see if format is valid or not to loop backl
+
+                Console.WriteLine("Invalid date.");
             }
-            Console.Clear();
-            int Priority; 
+
+            int priority;
             while (true)
             {
                 Console.Write("Enter Priority (1-5): ");
-                if (int.TryParse(Console.ReadLine(), out Priority) && Priority >= 1 && Priority <= 5) // check parse for priority
+                if (int.TryParse(Console.ReadLine(), out priority) && priority >= 1 && priority <= 5)
                 {
                     break;
                 }
-                Console.WriteLine("Invalid entry, enter a number between 1 and 5.");
+
+                Console.WriteLine("Invalid entry. Enter a number between 1 and 5.");
             }
-            Console.Clear();
-            var patient = new Patients(SirName, Name, DOB, Priority);
-            eRQueue.EnqueuePatients(patient); // insert patient into Enqueue to queue it up
+
+            Patients patient = new Patients(lastName, name, dob, priority);
+            eRQueue.EnqueuePatients(patient);
+
             Console.WriteLine("Patient Added.");
         }
 
         static void ProcessPatient()
         {
-            Patients patient = eRQueue.DequeuePatient(); // process and then dequeue the patient
+            Patients patient = eRQueue.DequeuePatient();
+
             if (patient != null)
             {
                 Console.WriteLine($"Processing patient: {patient}");
@@ -94,6 +122,5 @@ namespace Ha_Emergency_Room_Priority_Queue
                 Console.WriteLine("No patients in the queue.");
             }
         }
-
     }
 }

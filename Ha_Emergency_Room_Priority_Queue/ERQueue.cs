@@ -1,23 +1,55 @@
-﻿
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.IO;
-using System.Security.Cryptography;
+using System.Linq;
 
 namespace Ha_Emergency_Room_Priority_Queue
 {
     internal class ERQueue
     {
-        private PriorityQueue<Patients, int> queue = new PriorityQueue<Patients, int>(); // Start priorty queue
+        private List<Patients> patients = new List<Patients>();
 
-
-        public void LoadPreRecords(string preRecords) // loads the file into LoadPreRecords 
+        public void EnqueuePatients(Patients patient)
         {
+            patients.Add(patient);
+            patients = patients
+                .OrderByDescending(p => p.Priority)
+                .ThenBy(p => p.DOB)
+                .ToList();
+        }
 
-            if (!File.Exists(preRecords))
+        public Patients DequeuePatient()
+        {
+            if (patients.Count == 0)
+            {
+                return null;
+            }
+
+            Patients patient = patients[0];
+            patients.RemoveAt(0);
+            return patient;
+        }
+
+        public void ListPatients()
+        {
+            if (patients.Count == 0)
+            {
+                Console.WriteLine("No patients in queue.");
+                return;
+            }
+
+            Console.WriteLine("Patients in Queue:");
+            Console.WriteLine();
+
+            foreach (Patients patient in patients)
+            {
+                Console.WriteLine(patient);
+            }
+        }
+
+        public void LoadPreRecords(string filePath)
+        {
+            if (!File.Exists(filePath))
             {
                 Console.WriteLine("Error: Missing File");
                 return;
@@ -25,72 +57,42 @@ namespace Ha_Emergency_Room_Priority_Queue
 
             try
             {
-                var lines = File.ReadAllLines(preRecords).Skip(1);
-                foreach (var line in lines)
+                string[] lines = File.ReadAllLines(filePath);
+
+                foreach (string line in lines.Skip(1))
                 {
-                    var info = line.Split(',');
-                    if (info.Length >= 3)
+                    if (string.IsNullOrWhiteSpace(line))
                     {
-
-                        string Name = info[0].Trim();
-                        string SirName = info[1].Trim();
-                        DateTime DOB = DateTime.Parse(info[2].Trim());
-                        int Priority = int.Parse(info[3].Trim());
-
-                        var patient = new Patients(SirName, Name, DOB, Priority);
-                        EnqueuePatients(patient);
-
+                        continue;
                     }
 
+                    string[] parts = line.Split(',');
+
+                    if (parts.Length < 4)
+                    {
+                        continue;
+                    }
+
+                    string lastName = parts[0].Trim();
+                    string firstName = parts[1].Trim();
+
+                    if (!DateTime.TryParse(parts[2].Trim(), out DateTime dob))
+                    {
+                        continue;
+                    }
+
+                    if (!int.TryParse(parts[3].Trim(), out int priority))
+                    {
+                        continue;
+                    }
+
+                    Patients patient = new Patients(lastName, firstName, dob, priority);
+                    EnqueuePatients(patient);
                 }
             }
-            catch (Exception ex)
+            catch
             {
-                Console.WriteLine($"Error: {ex.Message}");
-            }
-
-
-        }
-
-        public void EnqueuePatients(Patients patient)
-        {
-            queue.Enqueue(patient, patient._priority);
-        }
-
-
-        public Patients DequeuePatient()
-        {
-            if(queue.TryDequeue(out Patients patient, out _)) // checks if we can dequeue patient
-            {
-                return patient;
-            }
-            return null;
-        }
-
-        public void ListPatients()
-        {
-            // Head of queue
-            List<Patients> sortedPatients = new List<Patients>();
-
-            // Dequeue all patients
-            while (queue.Count >= 1)
-            {
-                sortedPatients.Add(queue.Dequeue());
-            }
-
-            // Sort the patients
-            sortedPatients.Sort((p1, p2) => p1._priority.CompareTo(p2._priority));
-
-            // Requeue
-            foreach (var patient in sortedPatients)
-            {
-                EnqueuePatients(patient);
-            }
-
-            // Show result
-            foreach (var patient in queue.UnorderedItems)
-            {
-                Console.WriteLine($"{patient.Element}");
+                Console.WriteLine("Error reading file.");
             }
         }
     }
